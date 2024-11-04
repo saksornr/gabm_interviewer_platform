@@ -1,0 +1,333 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Interviewer Agent</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(45deg, #6e45e2, #88d3ce);
+        font-family: 'Arial', sans-serif;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #333;
+        font-size: 16px;
+        cursor: pointer;
+        margin: 10px;
+        transition: background-color 0.3s, transform 0.2s;
+      }
+
+      button:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.05);
+      }
+
+      button:active {
+        transform: scale(0.95);
+      }
+
+      #visualizer {
+        width: 150px;
+        height: 150px;
+        background-color: #fff;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(1);
+        transition: transform 0.1s ease;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px rgba(255, 255, 255, 0.6), 0 0 35px rgba(255, 255, 255, 0.6);
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #visualizer>i {
+        position: absolute;
+        font-size: 2em;
+        color: rgb(110, 129, 255);
+      }
+
+      #controls {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <div id="controls">
+      <button id="startButton">Click here to start the interview</button>
+      <!-- <button id="calibrateButton">Calibrate</button> -->
+    </div>
+    <div id="visualizer">
+      <i id="micIcon" class="fa fa-microphone" style="display: none"></i>
+      <i id="speakerIcon" class="fa fa-volume-up" style="display: none"></i>
+      <i id="thinkingIcon" class="fa fa-brain" style="display: none"></i>
+    </div>
+
+    <script>
+      // [SECTION 1: SETTING VARIABLES]
+      // Handles for HTML elements:
+      let visualizerElement = document.getElementById('visualizer');
+      let micIcon = document.getElementById('micIcon');
+      let speakerIcon = document.getElementById('speakerIcon');
+
+      // Web Audio API objects: 
+      let audioContext;
+      let agentAnalyser, userAnalyser; 
+
+      // Settings and parameters: 
+      let speechThreshold = {{ curr_user.audio_calibration_float }};
+      // let maxSilenceDuration = 40;
+
+      // State variables: 
+      let isUserTurn = false;
+
+
+      // [SECTION 2: DECORATION]
+      // Setting up the csrftoken for ajax calls. 
+      function updateIcons() {
+          if  (isUserTurn) {
+              micIcon.style.display = 'block';
+              speakerIcon.style.display = 'none';
+              thinkingIcon.style.display = 'none';
+          } else {
+              micIcon.style.display = 'none';
+              speakerIcon.style.display = 'block';
+              thinkingIcon.style.display = 'none';
+          }
+      }
+
+
+      function animate() {
+        window.requestAnimationFrame(animate);
+
+        let analyser = isUserTurn ? userAnalyser : agentAnalyser;
+        console.log(analyser);
+        analyser = agentAnalyser;
+        // Create a new Uint8Array to store the frequency data
+        let dataArray = new Uint8Array(analyser.frequencyBinCount);
+        // Get the frequency data and fill the Uint8Array
+        analyser.getByteFrequencyData(dataArray);
+
+        // Calculate the sum and average of the frequency data
+        let sum = dataArray.reduce((a, b) => a + b, 0);
+        let average = sum / dataArray.length;
+
+        // Calculate the scale based on the average frequency
+        let scale = 1 + (average / 64);
+        // Apply the scale transformation to the visualizer element
+        visualizerElement.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        // Update any icons or graphics you might have
+        updateIcons();
+      }
+
+
+      // [SECTION 3: SETTING CSRF]
+      // Setting up the csrftoken for ajax calls. 
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      const csrftoken = getCookie('csrftoken');
+
+
+      // [SECTION 4: MAIN]
+      function playAudio(currAudioElement) {
+        let agentSource = audioContext.createMediaElementSource(currAudioElement);
+        agentSource.connect(agentAnalyser);
+        agentAnalyser.connect(audioContext.destination);
+        currAudioElement.play();
+        animate(agentAnalyser);
+      }
+
+
+      // This is the main recursive loop. 
+      function take_one_step(data) {
+        const jsonData = JSON.stringify(data);
+        fetch('{% url "handler_take_one_step" %}', {
+          method: 'POST',
+          body: jsonData,
+          headers:{
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrftoken
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Received data:");
+          console.log(data);
+
+          if (data["interview_completed"] == true) {
+            console.log("Finished");
+            audioContext.close(); 
+          } else {
+            // Part 1. Playing the audio
+            isUserTurn = false;
+            updateIcons()
+            // Assuming your audio path is something like "sounds/myAudio.mp3"
+            var audio_path = "{% static 'gabm/interview/audio/' %}"+data["audio_fname"]; 
+            let audioElement = new Audio(audio_path);
+            playAudio(audioElement);
+
+            // Part 2. Record the user response
+            if (data["skip_user_utt"] == false) {
+                isUserTurn = true;
+                updateIcons();
+
+                // If skip_user_utt is true, we want to allow users to speak 
+                // once the audioElement finishes playing. 
+                audioElement.onended = function() {
+                  let mediaRecorder;
+                  let audioChunks = [];
+
+                  // Opening up the mediaDevices and making sure that it is
+                  // supported. 
+                  if (navigator.mediaDevices.getUserMedia) {
+                      navigator.mediaDevices.getUserMedia ({audio: true})
+                      .then(function(stream) {
+                    const source = audioContext.createMediaStreamSource(stream);
+                    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                    source.connect(processor);
+                    processor.connect(audioContext.destination);
+
+                    // We are initializing MediaRecorder here. Ideally, we 
+                    // would receive audio/wav, but it is no longer supported
+                    // by the browsers. 
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+                    // Push audio data into chunks array when data is available
+                    mediaRecorder.ondataavailable = event => {
+                      audioChunks.push(event.data);
+                    };
+
+                    // Here, we define the behavior of mediaRecorder once we finish. 
+                    mediaRecorder.onstop = () => {
+                      // Do something with audio data here, like sending it to 
+                      // the server
+                      const audioBlob = new Blob(audioChunks, { 'type' : 'audio/webm' });
+                      const audioUrl = URL.createObjectURL(audioBlob);
+                      const audio = new Audio(audioUrl);
+
+                      // Convert Blob to base64 or binary data and include in newData
+                      const reader = new FileReader();
+                      reader.readAsDataURL(audioBlob); 
+                      reader.onloadend = function() {
+                        const base64data = reader.result;
+
+                        // Here you can send the base64data to the server as 
+                        // part of newData
+                        var newData = {started: false, user_utt: base64data};
+                        // Recursively call with new or modified data. 
+                        // Importantly, this sends the data to the server. 
+                        take_one_step(newData); 
+                      }
+                    };
+
+                    // <MEDIA RECORDER START>
+                    mediaRecorder.start();
+
+                    let list_buffer_rms = [];
+                    processor.onaudioprocess = function(e) {
+                      // Get the buffer of audio data
+                      const buffer = e.inputBuffer.getChannelData(0);
+
+                      // Root Mean Square (RMS) is a statistical measure of the 
+                      // magnitude of a varying quantity. It's commonly used in 
+                      // physics, engineering, and signal processing to represent 
+                      // the average power or amplitude of a signal, especially 
+                      // when it varies over time.
+                      let sum = 0;
+                      for(let i = 0; i < buffer.length; i++) {
+                          sum += buffer[i] * buffer[i]; // sum of squares
+                      }
+                      let rms = Math.sqrt(sum / buffer.length);
+                      // Update the average noise level display/processing
+                      console.log("Current RMS: " + rms);
+
+                      if (rms > speechThreshold) {
+                        list_buffer_rms.push(rms);
+                        console.log(list_buffer_rms.length);
+                      }; 
+
+                      // This is the stopping condition for the recording...
+                      if (list_buffer_rms.length >= 50) {
+                        // Disconnecting the processor and source for now. 
+                        processor.disconnect();
+                        source.disconnect();
+                        processor.onaudioprocess = null;
+
+                        mediaRecorder.stop()
+                      };
+                    };
+                    // </MEDIA RECORDER START>
+
+                  })
+                  .catch(function(err) {
+                    console.log('The following gUM error occurred: ' + err);
+                  });
+                } else {
+                   console.log('getUserMedia not supported on your browser!');
+                }
+              }
+            }
+          }; // Ending the outer if
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+      }
+
+      document.getElementById('startButton').addEventListener('click', function() {
+        this.style.display = "none";
+        if (!audioContext && navigator.mediaDevices.getUserMedia) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          agentAnalyser = audioContext.createAnalyser();
+          agentAnalyser.fftSize=2048
+          userAnalyser = audioContext.createAnalyser();
+          userAnalyser.fftSize=2048
+        }
+
+        var data = {started: true, user_utt: null};
+        console.log("Sending data:");
+        console.log(data);
+        take_one_step(data); // Start the recursive calls
+      });
+
+
+    </script>
+
+  </body>
+</html>
