@@ -77,3 +77,4 @@ typing_extensions==4.9.0
 urllib3==2.0.4
 webrtcvad==2.0.10
 yarl==1.9.4
+python-dotenv==1.0.1
