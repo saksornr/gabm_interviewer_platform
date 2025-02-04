@@ -35,7 +35,7 @@ h11==0.14.0
 httpcore==1.0.2
 httpx==0.26.0
 idna==3.4
-install==1.3.5
+# install==1.3.5
 jmespath==1.0.1
 kiwisolver==1.4.5
 matplotlib==3.8.2
@@ -52,6 +52,7 @@ protobuf==4.25.1
 psycopg2-binary==2.9.9
 pyasn1==0.5.1
 pyasn1-modules==0.3.0
+# PyAudio
 PyAudio==0.2.14
 pycparser==2.21
 pydantic==2.5.2
