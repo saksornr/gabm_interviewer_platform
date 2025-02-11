@@ -4,9 +4,6 @@ pip-selfcheck.json
 *.DS_Store
 
 gabm_infra/settings/local.py
-static_dirs/*
-static_root/*
-media_root/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
