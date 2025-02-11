@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", True)
+DEBUG = os.environ.get("DEBUG", False)
 
 ALLOWED_HOSTS = list(os.environ.get("ALLOWED_HOSTS", "").split(","))
 
@@ -52,6 +52,10 @@ INSTALLED_APPS = [
 
     'pages',
     'storages',
+    
+    # Static file handling in Heroku
+    'whitenoise.runserver_nostatic',
+    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +69,10 @@ MIDDLEWARE = [
 
     # Add the account middleware for allAuth:
     'allauth.account.middleware.AccountMiddleware',
+
+    # Static file handling in Heroku
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'gabm_infra.urls'
