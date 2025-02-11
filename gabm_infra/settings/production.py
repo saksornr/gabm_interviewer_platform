@@ -52,10 +52,6 @@ INSTALLED_APPS = [
 
     'pages',
     'storages',
-    
-    # Static file handling in Heroku
-    'whitenoise.runserver_nostatic',
-    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE = [
@@ -69,10 +65,6 @@ MIDDLEWARE = [
 
     # Add the account middleware for allAuth:
     'allauth.account.middleware.AccountMiddleware',
-
-    # Static file handling in Heroku
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'gabm_infra.urls'
