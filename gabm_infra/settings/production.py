@@ -52,6 +52,10 @@ INSTALLED_APPS = [
 
     'pages',
     'storages',
+    
+    # Static file handling in Heroku
+    'whitenoise.runserver_nostatic',
+    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +69,10 @@ MIDDLEWARE = [
 
     # Add the account middleware for allAuth:
     'allauth.account.middleware.AccountMiddleware',
+
+    # Static file handling in Heroku
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'gabm_infra.urls'
@@ -188,5 +196,3 @@ MEDIA_ROOT = f"{BASE_DIR}/media_root"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400  # 25 MB in bytes
-
-
