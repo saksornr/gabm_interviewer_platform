@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     
     # Static file handling in Heroku
     'whitenoise.runserver_nostatic',
-    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +70,6 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 
     # Static file handling in Heroku
-    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
