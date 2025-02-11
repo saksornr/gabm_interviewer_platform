@@ -53,7 +53,7 @@ def transcribe_voice(audio_buffer, optional_key_phrases=["my name is Joon"]):
 
   if duration_seconds < 20: 
     # Use service account credentials by specifying the private key file
-    g_client = speech.SpeechClient.from_service_account_json(GOOGLE_CRED_PATH)
+    g_client = speech.SpeechClient.from_service_account_info(GOOGLE_CRED_DICT)
 
     # The buffer's bytes can be directly used as the content
     content = audio_buffer.getvalue()
